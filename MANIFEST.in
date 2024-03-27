@@ -1,0 +1,5 @@
+include LICENSE
+include README.md
+recursive-include django_whoop/static *
+recursive-include django_whoop/templates *
+recursive-include docs
