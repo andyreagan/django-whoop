@@ -1,10 +1,20 @@
-{% extends 'base.html' %}
+{% extends 'whoop/base.html' %}
 
 {% block body %}
+<h1>Success!</h1>
+
 <p>
-    Whoop successfully connected.
+    WHOOP successfully connected.
+</p>
+
+<h2>Next Steps</h2>
+<p>
+    <a href="{% url 'whoopdashboard' %}">Go to WHOOP Dashboard</a>
 </p>
 <p>
-    <a href="{% url 'home' %}" id="home">Back to dashboard</a>.
+    <a href="{% url 'whoopsyncrecent' %}">Sync Recent Data (7 days)</a>
+</p>
+<p>
+    <a href="{% url 'whoopsynchistorical' %}">Sync All Historical Data</a>
 </p>
 {% endblock %}

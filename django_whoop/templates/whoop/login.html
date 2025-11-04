@@ -1,7 +1,14 @@
-{% extends 'base.html' %}
+{% extends 'whoop/base.html' %}
 
 {% block body %}
-  <h2>Authenticate whoop</h2>
+  <h2>Authenticate WHOOP</h2>
+
+  {% if error %}
+  <div style="color: red; margin-bottom: 10px;">
+      <strong>Error:</strong> {{ error }}
+  </div>
+  {% endif %}
+
   <form method="post" action="{% url 'whooplogin' %}">
   {% csrf_token %}
   <table>
@@ -15,7 +22,7 @@
   </tr>
   </table>
 
-  <input type="submit" value="get auth token">
+  <input type="submit" value="Authenticate">
   <input type="hidden" name="next" value="{% url 'whoopsuccess' %}">
   </form>
 {% endblock %}

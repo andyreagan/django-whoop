@@ -1,0 +1,11 @@
+{% extends 'whoop/base.html' %}
+
+{% block body %}
+<h1>Sync Error</h1>
+
+<p>An error occurred while syncing your data:</p>
+
+<pre>{{ error }}</pre>
+
+<p><a href="{% url 'whoopdashboard' %}">Back to Dashboard</a></p>
+{% endblock %}

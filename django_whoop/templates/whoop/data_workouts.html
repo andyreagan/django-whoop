@@ -1,0 +1,49 @@
+{% extends 'whoop/base.html' %}
+
+{% block body %}
+<h1>Workout Data</h1>
+
+<p><a href="{% url 'whoopdashboard' %}">Back to Dashboard</a></p>
+
+{% if workouts %}
+<table>
+    <thead>
+        <tr>
+            <th>Date</th>
+            <th>Start Time</th>
+            <th>Sport ID</th>
+            <th>Score</th>
+            <th>Avg HR</th>
+            <th>Max HR</th>
+            <th>Kilojoules</th>
+            <th>Duration</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for workout in workouts %}
+        <tr>
+            <td>{{ workout.strain.day.day|date:"M d, Y" }}</td>
+            <td>{{ workout.during_lower|date:"H:i" }}</td>
+            <td>{{ workout.sportId }}</td>
+            <td>{{ workout.score|floatformat:1 }}</td>
+            <td>{{ workout.averageHeartRate|floatformat:0 }} bpm</td>
+            <td>{{ workout.maxHeartRate|floatformat:0 }} bpm</td>
+            <td>{{ workout.kilojoules|floatformat:1 }} kJ</td>
+            <td>
+                {% if workout.during_lower and workout.during_upper %}
+                    {% with duration=workout.during_upper|timeuntil:workout.during_lower %}
+                        {{ duration }}
+                    {% endwith %}
+                {% else %}
+                    -
+                {% endif %}
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% else %}
+<p>No workout data available.</p>
+{% endif %}
+
+{% endblock %}
