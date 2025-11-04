@@ -1,0 +1,70 @@
+{% extends 'whoop/base.html' %}
+
+{% block body %}
+<h1>Sleep Data</h1>
+
+<p><a href="{% url 'whoopdashboard' %}">Back to Dashboard</a></p>
+
+{% if sleeps %}
+<table>
+    <thead>
+        <tr>
+            <th>Date</th>
+            <th>Score</th>
+            <th>Quality Duration</th>
+            <th>Need (Total)</th>
+            <th>Baseline</th>
+            <th>Debt</th>
+            <th>Strain</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for sleep in sleeps %}
+        <tr>
+            <td>{{ sleep.day.day|date:"M d, Y" }}</td>
+            <td>{{ sleep.score|floatformat:0 }}%</td>
+            <td>
+                {% if sleep.qualityDuration %}
+                    {{ sleep.qualityDuration|floatformat:0 }} ms
+                    ({{ sleep.qualityDuration|floatformat:0|mul:0.0000002778|floatformat:1 }} hrs)
+                {% else %}
+                    -
+                {% endif %}
+            </td>
+            <td>
+                {% if sleep.needBreakdown_total %}
+                    {{ sleep.needBreakdown_total|floatformat:0|mul:0.0000002778|floatformat:1 }} hrs
+                {% else %}
+                    -
+                {% endif %}
+            </td>
+            <td>
+                {% if sleep.needBreakdown_baseline %}
+                    {{ sleep.needBreakdown_baseline|floatformat:0|mul:0.0000002778|floatformat:1 }} hrs
+                {% else %}
+                    -
+                {% endif %}
+            </td>
+            <td>
+                {% if sleep.needBreakdown_debt %}
+                    {{ sleep.needBreakdown_debt|floatformat:0|mul:0.0000002778|floatformat:1 }} hrs
+                {% else %}
+                    -
+                {% endif %}
+            </td>
+            <td>
+                {% if sleep.needBreakdown_strain %}
+                    {{ sleep.needBreakdown_strain|floatformat:0|mul:0.0000002778|floatformat:1 }} hrs
+                {% else %}
+                    -
+                {% endif %}
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% else %}
+<p>No sleep data available.</p>
+{% endif %}
+
+{% endblock %}

@@ -1,0 +1,9 @@
+{% extends 'whoop/base.html' %}
+
+{% block body %}
+<h1>Sync Successful</h1>
+
+<p>{{ message }}</p>
+
+<p><a href="{% url 'whoopdashboard' %}">Back to Dashboard</a></p>
+{% endblock %}

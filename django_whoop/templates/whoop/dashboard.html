@@ -1,0 +1,106 @@
+{% extends 'whoop/base.html' %}
+
+{% block body %}
+<h1>WHOOP Dashboard</h1>
+
+<div class="user-info">
+    <p><strong>User:</strong> {{ request.user.username }}</p>
+    <p><strong>WHOOP User ID:</strong> {{ whoopuser.whoop_user_id }}</p>
+    <p><strong>Member Since:</strong> {{ whoopuser.whoop_createdAt|date:"F d, Y" }}</p>
+    <p><strong>Last Token Update:</strong> {{ whoopuser.access_token_updated|date:"F d, Y H:i" }}</p>
+</div>
+
+<h2>Summary Statistics</h2>
+<div class="stats">
+    <div class="stat-item">
+        <strong>Total Days Tracked:</strong> {{ stats.total_days }}
+    </div>
+    <div class="stat-item">
+        <strong>Average Recovery:</strong>
+        {% if stats.avg_recovery %}
+            {{ stats.avg_recovery|floatformat:1 }}%
+        {% else %}
+            N/A
+        {% endif %}
+    </div>
+    <div class="stat-item">
+        <strong>Average Sleep Score:</strong>
+        {% if stats.avg_sleep_score %}
+            {{ stats.avg_sleep_score|floatformat:1 }}%
+        {% else %}
+            N/A
+        {% endif %}
+    </div>
+    <div class="stat-item">
+        <strong>Average Strain:</strong>
+        {% if stats.avg_strain %}
+            {{ stats.avg_strain|floatformat:1 }}
+        {% else %}
+            N/A
+        {% endif %}
+    </div>
+    <div class="stat-item">
+        <strong>Total Workouts:</strong> {{ stats.total_workouts }}
+    </div>
+</div>
+
+<h2>Quick Actions</h2>
+<div class="actions">
+    <a href="{% url 'whoopsyncrecent' %}">Sync Recent Data (7 days)</a> |
+    <a href="{% url 'whoopsynchistorical' %}">Sync All Historical Data</a> |
+    <a href="{% url 'whoopreauth' %}">Re-authenticate</a>
+</div>
+
+<h2>View Data</h2>
+<div class="data-links">
+    <a href="{% url 'whooprecovery' %}">Recovery Data</a> |
+    <a href="{% url 'whoopsleep' %}">Sleep Data</a> |
+    <a href="{% url 'whoopstrain' %}">Strain Data</a> |
+    <a href="{% url 'whoopworkouts' %}">Workouts</a>
+</div>
+
+<h2>Recent Days (Last 30)</h2>
+{% if recent_days %}
+<table>
+    <thead>
+        <tr>
+            <th>Date</th>
+            <th>Recovery</th>
+            <th>Sleep Score</th>
+            <th>Strain</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for day in recent_days %}
+        <tr>
+            <td>{{ day.day|date:"M d, Y" }}</td>
+            <td>
+                {% if day.recovery_set.first %}
+                    {{ day.recovery_set.first.score|floatformat:0 }}%
+                {% else %}
+                    -
+                {% endif %}
+            </td>
+            <td>
+                {% if day.sleep_set.first %}
+                    {{ day.sleep_set.first.score|floatformat:0 }}%
+                {% else %}
+                    -
+                {% endif %}
+            </td>
+            <td>
+                {% if day.strain_set.first %}
+                    {{ day.strain_set.first.score|floatformat:1 }}
+                {% else %}
+                    -
+                {% endif %}
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% else %}
+<p>No data available. <a href="{% url 'whoopsyncrecent' %}">Sync your data</a> to get started.</p>
+{% endif %}
+
+{% endblock %}

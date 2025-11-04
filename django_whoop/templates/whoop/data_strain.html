@@ -1,0 +1,37 @@
+{% extends 'whoop/base.html' %}
+
+{% block body %}
+<h1>Strain Data</h1>
+
+<p><a href="{% url 'whoopdashboard' %}">Back to Dashboard</a></p>
+
+{% if strains %}
+<table>
+    <thead>
+        <tr>
+            <th>Date</th>
+            <th>Score</th>
+            <th>Avg HR</th>
+            <th>Max HR</th>
+            <th>Kilojoules</th>
+            <th>Workouts</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for strain in strains %}
+        <tr>
+            <td>{{ strain.day.day|date:"M d, Y" }}</td>
+            <td>{{ strain.score|floatformat:1 }}</td>
+            <td>{{ strain.averageHeartRate|floatformat:0 }} bpm</td>
+            <td>{{ strain.maxHeartRate|floatformat:0 }} bpm</td>
+            <td>{{ strain.kilojoules|floatformat:1 }} kJ</td>
+            <td>{{ strain.workout_set.count }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% else %}
+<p>No strain data available.</p>
+{% endif %}
+
+{% endblock %}

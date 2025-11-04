@@ -1,0 +1,35 @@
+{% extends 'whoop/base.html' %}
+
+{% block body %}
+<h1>Recovery Data</h1>
+
+<p><a href="{% url 'whoopdashboard' %}">Back to Dashboard</a></p>
+
+{% if recoveries %}
+<table>
+    <thead>
+        <tr>
+            <th>Date</th>
+            <th>Score</th>
+            <th>Resting HR</th>
+            <th>HRV (RMSSD)</th>
+            <th>Timestamp</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for recovery in recoveries %}
+        <tr>
+            <td>{{ recovery.day.day|date:"M d, Y" }}</td>
+            <td>{{ recovery.score|floatformat:0 }}%</td>
+            <td>{{ recovery.restingHeartRate|floatformat:0 }} bpm</td>
+            <td>{{ recovery.heartRateVariabilityRmssd|floatformat:2 }} ms</td>
+            <td>{{ recovery.timestamp|date:"M d, Y H:i" }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% else %}
+<p>No recovery data available.</p>
+{% endif %}
+
+{% endblock %}

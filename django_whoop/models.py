@@ -99,13 +99,32 @@ class WhoopUser(models.Model):
         self.save()
 
     def refreshIfNeeded(self, check_api=False):
+        """
+        Refresh the access token if it has expired.
+
+        Args:
+            check_api: If True, make an API call to check token validity.
+                      If False, check based on timestamp.
+        """
         if check_api:
-            # check the api
-            pass
+            # Check token validity by making a test API call
+            headers = {'authorization': f'bearer {self.access_token}'}
+            test_url = f'https://api-7.whoop.com/users/{self.whoop_user_id}/profile'
+            try:
+                response = requests.get(test_url, headers=headers)
+                if response.status_code == 401:
+                    # Token is invalid, refresh it
+                    self.refreshToken()
+            except requests.RequestException:
+                # If API call fails, try refreshing anyway
+                self.refreshToken()
         else:
-            # check the timestamps...
-            pass
-        self.refreshToken()
+            # Check if token has expired based on timestamp
+            # Token expires_in is in seconds
+            token_age = (datetime.datetime.now(pytz.UTC) - self.access_token_updated).total_seconds()
+            # Refresh if token is older than expires_in (with 5 minute buffer)
+            if token_age > (self.access_token_expires_in - 300):
+                self.refreshToken()
 
     def refreshToken(self):
         headers = {
