@@ -195,4 +195,4 @@ class TestSuccessView:
 
     def test_content(self, tmpl_settings, logged_in_client):
         response = logged_in_client.get("/whoop/success")
-        assert b"Whoop successfully connected" in response.content
+        assert b"WHOOP successfully connected" in response.content
