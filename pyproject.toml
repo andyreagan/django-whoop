@@ -1,3 +1,56 @@
 [build-system]
-requires = ['setuptools>=40.8.0']
-build-backend = 'setuptools.build_meta'
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "django-whoop"
+version = "0.1"
+description = "A Django app to access WHOOP Web APIs."
+readme = { file = "README.md", content-type = "text/markdown" }
+license = { text = "BSD-3-Clause" }
+authors = [
+    { name = "Andy Reagan", email = "andy@andyreagan.com" },
+]
+requires-python = ">=3.10"
+classifiers = [
+    "Environment :: Web Environment",
+    "Framework :: Django",
+    "Framework :: Django :: 5.0",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: BSD License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Topic :: Internet :: WWW/HTTP",
+    "Topic :: Internet :: WWW/HTTP :: Dynamic Content",
+]
+dependencies = [
+    "Django>=4.0",
+    "requests",
+    "pytz",
+    "python-dateutil",
+]
+
+[project.urls]
+Homepage = "https://django-whoop.andyreagan.github.io"
+Repository = "https://github.com/andyreagan/django-whoop"
+Issues = "https://github.com/andyreagan/django-whoop/issues"
+
+[dependency-groups]
+dev = [
+    "pytest",
+    "pytest-django",
+    "django",
+]
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "tests.settings"
+
+[tool.hatch.build.targets.wheel]
+packages = ["django_whoop"]

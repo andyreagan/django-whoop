@@ -165,7 +165,7 @@ class Daily(models.Model):
             user=user.whoopuser,
             id=d['id'],
             defaults={
-                'day': get_date(d['days'][0]),
+                'day': get_date(d['days'][0]).date(),
                 'during_bounds': during.get('bounds'),
                 'during_lower': get_date(during.get('lower'), tzinfo=pytz.UTC),
                 'during_upper': get_date(during.get('upper'), tzinfo=pytz.UTC),
