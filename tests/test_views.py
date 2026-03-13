@@ -7,6 +7,7 @@ using the pytest-django ``settings`` fixture.
 
 WHOOP API calls (requests.post / requests.get) are mocked throughout.
 """
+
 import pytest
 from unittest.mock import MagicMock, patch
 
@@ -62,28 +63,34 @@ def logged_in_client(logged_in_user):
 # URL routing
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.django_db
 class TestURLRouting:
     def test_login_url_resolves(self):
         from django.urls import reverse
+
         assert reverse("whooplogin") == "/whoop/login"
 
     def test_reauth_url_resolves(self):
         from django.urls import reverse
+
         assert reverse("whoopreauth") == "/whoop/reauth"
 
     def test_logout_url_resolves(self):
         from django.urls import reverse
+
         assert reverse("whooplogout") == "/whoop/logout"
 
     def test_success_url_resolves(self):
         from django.urls import reverse
+
         assert reverse("whoopsuccess") == "/whoop/success"
 
 
 # ---------------------------------------------------------------------------
 # login view
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.django_db
 class TestLoginView:
@@ -97,7 +104,9 @@ class TestLoginView:
         assert b"password" in response.content.lower()
 
     @patch("django_whoop.models.requests.post")
-    def test_post_redirects_to_success(self, mock_post, tmpl_settings, logged_in_client):
+    def test_post_redirects_to_success(
+        self, mock_post, tmpl_settings, logged_in_client
+    ):
         mock_resp = MagicMock()
         mock_resp.status_code = 200
         mock_resp.json.return_value = {
@@ -116,7 +125,9 @@ class TestLoginView:
         assert response["Location"] == "/whoop/success"
 
     @patch("django_whoop.models.requests.post")
-    def test_post_saves_token_to_db(self, mock_post, tmpl_settings, logged_in_client, logged_in_user):
+    def test_post_saves_token_to_db(
+        self, mock_post, tmpl_settings, logged_in_client, logged_in_user
+    ):
         mock_resp = MagicMock()
         mock_resp.status_code = 200
         mock_resp.json.return_value = {
@@ -140,6 +151,7 @@ class TestLoginView:
 # reauth view
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.django_db
 class TestReauthView:
     def _make_whoop_user(self, django_user):
@@ -161,7 +173,9 @@ class TestReauthView:
         assert b"username" in response.content.lower()
 
     @patch("django_whoop.models.requests.post")
-    def test_post_updates_token_and_redirects(self, mock_post, tmpl_settings, logged_in_client, logged_in_user):
+    def test_post_updates_token_and_redirects(
+        self, mock_post, tmpl_settings, logged_in_client, logged_in_user
+    ):
         wu = self._make_whoop_user(logged_in_user)
         mock_resp = MagicMock()
         mock_resp.status_code = 200
@@ -186,6 +200,7 @@ class TestReauthView:
 # ---------------------------------------------------------------------------
 # success view
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.django_db
 class TestSuccessView:

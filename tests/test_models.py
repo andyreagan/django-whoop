@@ -4,6 +4,7 @@ Tests for django_whoop models.
 WHOOP API calls (requests.post / requests.get) are mocked throughout so no
 network access is required.
 """
+
 import datetime
 from unittest.mock import MagicMock, patch
 
@@ -29,6 +30,7 @@ from django_whoop.models import (
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def make_user(username="testuser"):
     return User.objects.create_user(username=username, password="secret")
@@ -56,6 +58,7 @@ def make_daily(whoop_user, day_str="2021-03-17", daily_id=1001):
 # ---------------------------------------------------------------------------
 # get_date utility
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.django_db
 class TestGetDate:
@@ -87,6 +90,7 @@ class TestGetDate:
 # get_utc_time utility
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.django_db
 class TestGetUtcTime:
     def test_none_returns_none(self):
@@ -112,6 +116,7 @@ class TestGetUtcTime:
 # ---------------------------------------------------------------------------
 # WhoopUser model
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.django_db
 class TestWhoopUser:
@@ -188,6 +193,7 @@ class TestWhoopUser:
 # Daily model
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.django_db
 class TestDailyModel:
     def test_str(self):
@@ -213,7 +219,11 @@ class TestDailyModel:
         cycle = {
             "id": 3001,
             "days": ["2021-03-17"],
-            "during": {"bounds": "[)", "lower": "2021-03-17T00:00:00Z", "upper": "2021-03-18T00:00:00Z"},
+            "during": {
+                "bounds": "[)",
+                "lower": "2021-03-17T00:00:00Z",
+                "upper": "2021-03-18T00:00:00Z",
+            },
             "lastUpdatedAt": "2021-03-17T20:00:00Z",
         }
         daily = Daily.fill_from_cycle_response(django_user, cycle)
@@ -262,7 +272,11 @@ class TestDailyModel:
                         "id": 9001,
                         "averageHeartRate": 131,
                         "cumulativeWorkoutStrain": 14.9,
-                        "during": {"bounds": "[)", "lower": "2021-03-19T16:53:55Z", "upper": "2021-03-19T18:08:15Z"},
+                        "during": {
+                            "bounds": "[)",
+                            "lower": "2021-03-19T16:53:55Z",
+                            "upper": "2021-03-19T18:08:15Z",
+                        },
                         "kilojoules": 2863.5,
                         "maxHeartRate": 157,
                         "rawScore": 0.0057,
@@ -306,7 +320,11 @@ class TestDailyModel:
                         "id": 8001,
                         "cyclesCount": 5,
                         "disturbanceCount": 12,
-                        "during": {"bounds": "[)", "lower": "2021-03-20T03:01:00Z", "upper": "2021-03-20T11:33:00Z"},
+                        "during": {
+                            "bounds": "[)",
+                            "lower": "2021-03-20T03:01:00Z",
+                            "upper": "2021-03-20T11:33:00Z",
+                        },
                         "inBedDuration": 30718493,
                         "latencyDuration": 0,
                         "lightSleepDuration": 12011596,
@@ -337,6 +355,7 @@ class TestDailyModel:
 # Recovery model
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.django_db
 class TestRecoveryModel:
     def test_create_and_retrieve(self):
@@ -358,14 +377,13 @@ class TestRecoveryModel:
 # Sleep / SleepDetail models
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.django_db
 class TestSleepModels:
     def test_sleep_create(self):
         wu = make_whoop_user()
         daily = make_daily(wu)
-        s = Sleep.objects.create(
-            day=daily, id=7001, qualityDuration=25139744, score=73
-        )
+        s = Sleep.objects.create(day=daily, id=7001, qualityDuration=25139744, score=73)
         assert Sleep.objects.filter(day=daily).count() == 1
         assert s.score == 73
 
@@ -389,14 +407,13 @@ class TestSleepModels:
 # Strain / Workout models
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.django_db
 class TestStrainWorkout:
     def test_strain_create(self):
         wu = make_whoop_user()
         daily = make_daily(wu)
-        s = Strain.objects.create(
-            day=daily, id=5001, score=16.39, kilojoules=14218.7
-        )
+        s = Strain.objects.create(day=daily, id=5001, score=16.39, kilojoules=14218.7)
         assert s.score == pytest.approx(16.39)
 
     def test_workout_create(self):
@@ -422,6 +439,7 @@ class TestStrainWorkout:
 # HR model
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.django_db
 class TestHRModel:
     def test_fill_from_response(self):
@@ -445,6 +463,7 @@ class TestHRModel:
 # ---------------------------------------------------------------------------
 # JournalEntry model
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.django_db
 class TestJournalEntry:

@@ -7,9 +7,10 @@ class WhoopAuthForm(forms.Form):
     """
     Base class for authenticating a whoop user by username/password.
     """
-    username = UsernameField(widget=forms.TextInput(attrs={'autofocus': True}))
+
+    username = UsernameField(widget=forms.TextInput(attrs={"autofocus": True}))
     password = forms.CharField(
         label=_("Password"),
         strip=False,
-        widget=forms.PasswordInput(attrs={'autocomplete': 'current-password'}),
+        widget=forms.PasswordInput(attrs={"autocomplete": "current-password"}),
     )

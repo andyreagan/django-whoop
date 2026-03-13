@@ -4,60 +4,59 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('whoop', '0005_daily_recovery_sleep_sleepdetail_strain_workout'),
+        ("whoop", "0005_daily_recovery_sleep_sleepdetail_strain_workout"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='workout',
-            name='averageHeartRate',
+            model_name="workout",
+            name="averageHeartRate",
             field=models.FloatField(null=True),
         ),
         migrations.AddField(
-            model_name='workout',
-            name='cumulativeWorkoutStrain',
+            model_name="workout",
+            name="cumulativeWorkoutStrain",
             field=models.FloatField(null=True),
         ),
         migrations.AddField(
-            model_name='workout',
-            name='during_lower',
+            model_name="workout",
+            name="during_lower",
             field=models.DateTimeField(null=True),
         ),
         migrations.AddField(
-            model_name='workout',
-            name='during_upper',
+            model_name="workout",
+            name="during_upper",
             field=models.DateTimeField(null=True),
         ),
         migrations.AddField(
-            model_name='workout',
-            name='kilojoules',
+            model_name="workout",
+            name="kilojoules",
             field=models.FloatField(null=True),
         ),
         migrations.AddField(
-            model_name='workout',
-            name='maxHeartRate',
+            model_name="workout",
+            name="maxHeartRate",
             field=models.FloatField(null=True),
         ),
         migrations.AddField(
-            model_name='workout',
-            name='rawScore',
+            model_name="workout",
+            name="rawScore",
             field=models.FloatField(null=True),
         ),
         migrations.AddField(
-            model_name='workout',
-            name='score',
+            model_name="workout",
+            name="score",
             field=models.FloatField(null=True),
         ),
         migrations.AddField(
-            model_name='workout',
-            name='sportId',
+            model_name="workout",
+            name="sportId",
             field=models.IntegerField(null=True),
         ),
         migrations.AlterField(
-            model_name='workout',
-            name='id',
+            model_name="workout",
+            name="id",
             field=models.IntegerField(primary_key=True, serialize=False),
         ),
     ]

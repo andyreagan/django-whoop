@@ -4,20 +4,19 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('whoop', '0006_auto_20210318_1359'),
+        ("whoop", "0006_auto_20210318_1359"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='workout',
-            name='during_bounds',
+            model_name="workout",
+            name="during_bounds",
             field=models.CharField(max_length=20, null=True),
         ),
         migrations.AddField(
-            model_name='workout',
-            name='timezoneOffset',
+            model_name="workout",
+            name="timezoneOffset",
             field=models.CharField(max_length=10, null=True),
         ),
     ]

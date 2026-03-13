@@ -5,20 +5,19 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('whoop', '0002_auto_20210317_1359'),
+        ("whoop", "0002_auto_20210317_1359"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='whoopuser',
-            name='access_token_expires_in',
+            model_name="whoopuser",
+            name="access_token_expires_in",
             field=models.IntegerField(default=0),
         ),
         migrations.AddField(
-            model_name='whoopuser',
-            name='access_token_updated',
+            model_name="whoopuser",
+            name="access_token_updated",
             field=models.DateTimeField(default=datetime.datetime(1, 1, 1, 0, 0)),
         ),
     ]

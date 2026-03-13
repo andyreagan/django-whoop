@@ -4,15 +4,14 @@ from django.db import migrations
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('whoop', '0007_auto_20210318_1400'),
+        ("whoop", "0007_auto_20210318_1400"),
     ]
 
     operations = [
         migrations.RenameField(
-            model_name='workout',
-            old_name='zone_6',
-            new_name='zone_0',
+            model_name="workout",
+            old_name="zone_6",
+            new_name="zone_0",
         ),
     ]

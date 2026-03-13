@@ -5,20 +5,19 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('whoop', '0001_initial'),
+        ("whoop", "0001_initial"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='whoopuser',
-            name='whoop_createdAt',
+            model_name="whoopuser",
+            name="whoop_createdAt",
             field=models.DateTimeField(default=datetime.datetime(1, 1, 1, 0, 0)),
         ),
         migrations.AddField(
-            model_name='whoopuser',
-            name='whoop_user_id',
+            model_name="whoopuser",
+            name="whoop_user_id",
             field=models.IntegerField(default=-1),
         ),
     ]

@@ -1,13 +1,15 @@
 """
 Tests for django_whoop forms.
 """
-import pytest
+
 from django_whoop.forms import WhoopAuthForm
 
 
 class TestWhoopAuthForm:
     def test_valid_data(self):
-        form = WhoopAuthForm(data={"username": "user@example.com", "password": "s3cr3t"})
+        form = WhoopAuthForm(
+            data={"username": "user@example.com", "password": "s3cr3t"}
+        )
         assert form.is_valid()
 
     def test_missing_username(self):
@@ -26,6 +28,7 @@ class TestWhoopAuthForm:
 
     def test_password_field_is_password_input(self):
         from django.forms import PasswordInput
+
         form = WhoopAuthForm()
         assert isinstance(form.fields["password"].widget, PasswordInput)
 
