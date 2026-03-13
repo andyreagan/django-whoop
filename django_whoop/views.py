@@ -7,7 +7,21 @@ from django.http import HttpRequest, HttpResponseRedirect
 from django.shortcuts import redirect, render
 import requests
 
-from .models import *
+import datetime
+
+import pytz
+from django.db import models
+
+from .models import (
+    Daily,
+    HR,
+    JournalEntry,
+    Recovery,
+    Sleep,
+    Strain,
+    WhoopUser,
+    Workout,
+)
 from .forms import WhoopAuthForm
 
 

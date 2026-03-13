@@ -1,3 +1,4 @@
+# ruff: noqa: F405
 ## this helps with weird ipython completion error
 # get_ipython().run_line_magic('config', 'IPCompleter.use_jedi = False')
 
@@ -8,22 +9,22 @@ import sys
 
 sys.path.insert(0, str(Path(sys.path[0]) / "../.."))
 print(sys.path)
-import os
+import os  # noqa: E402
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "main.settings")
 # from asgiref.sync import sync_to_async
 os.environ["DJANGO_ALLOW_ASYNC_UNSAFE"] = "true"
-import django
+import django  # noqa: E402
 
 django.setup()
 
 ## completed django setup
 
 
-from django.contrib.auth.models import User
+from django.contrib.auth.models import User  # noqa: E402
 
-from django_whoop.models import *
-from django_whoop.views import *
+from django_whoop.models import *  # noqa: F403, E402
+from django_whoop.views import *  # noqa: F403, E402
 
 user = User.objects.get(username="andyreagan")
 user.whoopuser.refreshIfNeeded()

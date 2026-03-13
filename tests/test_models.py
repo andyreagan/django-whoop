@@ -361,7 +361,7 @@ class TestRecoveryModel:
     def test_create_and_retrieve(self):
         wu = make_whoop_user()
         daily = make_daily(wu)
-        r = Recovery.objects.create(
+        Recovery.objects.create(
             day=daily,
             id=60001,
             heartRateVariabilityRmssd=0.059,
@@ -484,7 +484,7 @@ class TestJournalEntry:
         assert "Intermittent Fasting" in str(entry)
 
     def test_create_from_response(self):
-        daily = self._make_daily()
+        self._make_daily()
         raw = {
             "behavior_tracker": {
                 "id": 50,
