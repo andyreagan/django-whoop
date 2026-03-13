@@ -1,7 +1,17 @@
 from django.contrib import admin
 
 # Register your models here.
-from .models import *
+from .models import (
+    Daily,
+    HR,
+    JournalEntry,
+    Recovery,
+    Sleep,
+    SleepDetail,
+    Strain,
+    WhoopUser,
+    Workout,
+)
 
 
 @admin.register(WhoopUser)
