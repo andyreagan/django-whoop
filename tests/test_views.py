@@ -1,213 +1,212 @@
-"""
-Tests for django_whoop views.
-
-The views extend a 'base.html' template that lives in the consuming project,
-not inside django_whoop itself.  We inject a stub via Django's locmem loader
-using the pytest-django ``settings`` fixture.
-
-WHOOP API calls (requests.post / requests.get) are mocked throughout.
-"""
+import base64
+import hashlib
+import hmac
+import json
+from urllib.parse import parse_qs, urlparse
 
 import pytest
-from unittest.mock import MagicMock, patch
+import respx
+from django.urls import reverse
+from httpx import Response
 
-from django.contrib.auth.models import User
-from django.test import Client
+from whoop.constants import API_BASE_URL, OAUTH_TOKEN_URL
+from whoop.models import ConnectionStatus, WhoopConnection
+from whoop.signals import event_received
+from whoop.views import SESSION_KEY
 
-from django_whoop.models import WhoopUser
+TOKEN_RESPONSE = {
+    "access_token": "cb-access",
+    "expires_in": 3600,
+    "refresh_token": "cb-refresh",
+    "scope": "read:cycles offline",
+}
 
 
-# ---------------------------------------------------------------------------
-# Stub base template injected via the ``settings`` fixture
-# ---------------------------------------------------------------------------
+def _sign(body: bytes, timestamp: str, secret: str = "test-client-secret") -> str:
+    digest = hmac.new(
+        secret.encode(), timestamp.encode() + body, hashlib.sha256
+    ).digest()
+    return base64.b64encode(digest).decode()
 
-STUB_BASE = "{% block body %}{% endblock %}"
 
-PATCHED_TEMPLATES = [
-    {
-        "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [],
-        "OPTIONS": {
-            "context_processors": ["django.template.context_processors.request"],
-            "loaders": [
-                (
-                    "django.template.loaders.locmem.Loader",
-                    {"base.html": STUB_BASE},
-                ),
-                "django.template.loaders.app_directories.Loader",
-            ],
+def _post_event(
+    client, payload, *, secret="test-client-secret", timestamp="1700000000000"
+):
+    body = json.dumps(payload).encode()
+    return client.post(
+        reverse("whoop:webhooks"),
+        data=body,
+        content_type="application/json",
+        headers={
+            "X-WHOOP-Signature": _sign(body, timestamp, secret),
+            "X-WHOOP-Signature-Timestamp": timestamp,
         },
+    )
+
+
+@pytest.mark.django_db
+class TestConnect:
+    def test_requires_login(self, client):
+        response = client.get(reverse("whoop:connect"))
+        assert response.status_code == 302
+        assert "login" in response["Location"]
+
+    def test_redirects_to_whoop_and_stashes_flow(self, client, customer):
+        client.force_login(customer)
+        response = client.get(reverse("whoop:connect"))
+
+        assert response.status_code == 302
+        location = urlparse(response["Location"])
+        assert location.hostname == "api.prod.whoop.com"
+        params = {k: v[0] for k, v in parse_qs(location.query).items()}
+
+        stashed = client.session[SESSION_KEY]
+        assert params["state"] == stashed["state"]
+        assert params["scope"].split() == stashed["scopes"]
+
+
+@pytest.mark.django_db
+class TestCallback:
+    def _start_flow(self, client, customer):
+        client.force_login(customer)
+        response = client.get(reverse("whoop:connect"))
+        params = {
+            k: v[0] for k, v in parse_qs(urlparse(response["Location"]).query).items()
+        }
+        return params["state"]
+
+    @respx.mock
+    def test_happy_path_creates_connection(self, client, customer):
+        state = self._start_flow(client, customer)
+        respx.post(OAUTH_TOKEN_URL).mock(
+            return_value=Response(200, json=TOKEN_RESPONSE)
+        )
+        respx.get(f"{API_BASE_URL}/v2/user/profile/basic").mock(
+            return_value=Response(200, json={"user_id": 10129})
+        )
+
+        response = client.get(
+            reverse("whoop:callback"), {"code": "auth-code", "state": state}
+        )
+
+        assert response.status_code == 302
+        connection = WhoopConnection.objects.get(customer=customer)
+        assert connection.whoop_user_id == "10129"
+        assert connection.access_token == "cb-access"
+
+    def test_state_mismatch_rejected(self, client, customer):
+        self._start_flow(client, customer)
+        response = client.get(
+            reverse("whoop:callback"), {"code": "auth-code", "state": "tampered"}
+        )
+        assert response.status_code == 400
+        assert not WhoopConnection.objects.exists()
+
+    def test_error_param_rejected(self, client, customer):
+        client.force_login(customer)
+        response = client.get(reverse("whoop:callback"), {"error": "access_denied"})
+        assert response.status_code == 400
+
+    def test_missing_code_rejected(self, client, customer):
+        client.force_login(customer)
+        response = client.get(reverse("whoop:callback"))
+        assert response.status_code == 400
+
+    def test_no_flow_in_progress_rejected(self, client, customer):
+        client.force_login(customer)
+        response = client.get(
+            reverse("whoop:callback"), {"code": "auth-code", "state": "s"}
+        )
+        assert response.status_code == 400
+
+
+@pytest.mark.django_db
+class TestDisconnect:
+    @respx.mock
+    def test_revokes_connection(self, client, connection):
+        respx.delete(f"{API_BASE_URL}/v2/user/access").mock(return_value=Response(204))
+        client.force_login(connection.customer)
+        response = client.post(reverse("whoop:disconnect"))
+
+        assert response.status_code == 302
+        connection.refresh_from_db()
+        assert connection.status == ConnectionStatus.REVOKED
+
+    def test_no_connection_is_a_noop(self, client, customer):
+        client.force_login(customer)
+        response = client.post(reverse("whoop:disconnect"))
+        assert response.status_code == 302
+
+    def test_get_not_allowed(self, client, connection):
+        client.force_login(connection.customer)
+        response = client.get(reverse("whoop:disconnect"))
+        assert response.status_code == 405
+
+
+@pytest.mark.django_db
+class TestWebhookReceiver:
+    EVENT = {
+        "user_id": 10129,
+        "id": "ecfc6a15-4661-442f-a9a4-f160dd7afae8",
+        "type": "sleep.updated",
+        "trace_id": "d3709ee7-104e-4f70-a928-2932964b017b",
     }
-]
 
+    def test_valid_signature_emits_signal_and_returns_204(self, client):
+        received = []
 
-@pytest.fixture
-def tmpl_settings(settings):
-    """Override TEMPLATES to include a stub base.html."""
-    settings.TEMPLATES = PATCHED_TEMPLATES
+        def handler(sender, payload, **kwargs):
+            received.append(payload)
 
+        event_received.connect(handler)
+        try:
+            response = _post_event(client, self.EVENT)
+        finally:
+            event_received.disconnect(handler)
 
-@pytest.fixture
-def logged_in_user(db):
-    return User.objects.create_user(username="viewer", password="pass")
+        assert response.status_code == 204
+        assert received == [self.EVENT]
 
+    def test_bad_signature_rejected(self, client):
+        response = _post_event(client, self.EVENT, secret="wrong-secret")
+        assert response.status_code == 401
 
-@pytest.fixture
-def logged_in_client(logged_in_user):
-    c = Client()
-    c.force_login(logged_in_user)
-    return c
-
-
-# ---------------------------------------------------------------------------
-# URL routing
-# ---------------------------------------------------------------------------
-
-
-@pytest.mark.django_db
-class TestURLRouting:
-    def test_login_url_resolves(self):
-        from django.urls import reverse
-
-        assert reverse("whooplogin") == "/whoop/login"
-
-    def test_reauth_url_resolves(self):
-        from django.urls import reverse
-
-        assert reverse("whoopreauth") == "/whoop/reauth"
-
-    def test_logout_url_resolves(self):
-        from django.urls import reverse
-
-        assert reverse("whooplogout") == "/whoop/logout"
-
-    def test_success_url_resolves(self):
-        from django.urls import reverse
-
-        assert reverse("whoopsuccess") == "/whoop/success"
-
-
-# ---------------------------------------------------------------------------
-# login view
-# ---------------------------------------------------------------------------
-
-
-@pytest.mark.django_db
-class TestLoginView:
-    def test_get_returns_200(self, tmpl_settings, logged_in_client):
-        response = logged_in_client.get("/whoop/login")
-        assert response.status_code == 200
-
-    def test_get_contains_form(self, tmpl_settings, logged_in_client):
-        response = logged_in_client.get("/whoop/login")
-        assert b"username" in response.content.lower()
-        assert b"password" in response.content.lower()
-
-    @patch("django_whoop.models.requests.post")
-    def test_post_redirects_to_success(
-        self, mock_post, tmpl_settings, logged_in_client
-    ):
-        mock_resp = MagicMock()
-        mock_resp.status_code = 200
-        mock_resp.json.return_value = {
-            "access_token": "tok123",
-            "expires_in": 3600,
-            "refresh_token": "ref123",
-            "user": {"id": 77, "createdAt": "2020-10-18T00:57:18.609Z"},
-        }
-        mock_post.return_value = mock_resp
-
-        response = logged_in_client.post(
-            "/whoop/login",
-            {"username": "whoop@example.com", "password": "secret"},
+    def test_missing_signature_rejected(self, client):
+        response = client.post(
+            reverse("whoop:webhooks"),
+            data=json.dumps(self.EVENT),
+            content_type="application/json",
         )
-        assert response.status_code == 302
-        assert response["Location"] == "/whoop/success"
+        assert response.status_code == 401
 
-    @patch("django_whoop.models.requests.post")
-    def test_post_saves_token_to_db(
-        self, mock_post, tmpl_settings, logged_in_client, logged_in_user
-    ):
-        mock_resp = MagicMock()
-        mock_resp.status_code = 200
-        mock_resp.json.return_value = {
-            "access_token": "saved_tok",
-            "expires_in": 3600,
-            "refresh_token": "saved_ref",
-            "user": {"id": 88, "createdAt": "2020-01-01T00:00:00.000Z"},
-        }
-        mock_post.return_value = mock_resp
-
-        logged_in_client.post(
-            "/whoop/login",
-            {"username": "w@example.com", "password": "pw"},
+    def test_tampered_body_rejected(self, client):
+        body = json.dumps(self.EVENT).encode()
+        timestamp = "1700000000000"
+        response = client.post(
+            reverse("whoop:webhooks"),
+            data=json.dumps({**self.EVENT, "user_id": 666}),
+            content_type="application/json",
+            headers={
+                "X-WHOOP-Signature": _sign(body, timestamp),
+                "X-WHOOP-Signature-Timestamp": timestamp,
+            },
         )
-        wu = WhoopUser.objects.get(user=logged_in_user)
-        assert wu.access_token == "saved_tok"
-        assert wu.whoop_user_id == 88
+        assert response.status_code == 401
 
-
-# ---------------------------------------------------------------------------
-# reauth view
-# ---------------------------------------------------------------------------
-
-
-@pytest.mark.django_db
-class TestReauthView:
-    def _make_whoop_user(self, django_user):
-        return WhoopUser.objects.create(
-            user=django_user,
-            access_token="old_tok",
-            refresh_token="old_ref",
-            whoop_user_id=42,
+    def test_invalid_json_rejected(self, client):
+        body = b"not-json{"
+        timestamp = "1700000000000"
+        response = client.post(
+            reverse("whoop:webhooks"),
+            data=body,
+            content_type="application/json",
+            headers={
+                "X-WHOOP-Signature": _sign(body, timestamp),
+                "X-WHOOP-Signature-Timestamp": timestamp,
+            },
         )
+        assert response.status_code == 400
 
-    def test_get_returns_200(self, tmpl_settings, logged_in_client, logged_in_user):
-        self._make_whoop_user(logged_in_user)
-        response = logged_in_client.get("/whoop/reauth")
-        assert response.status_code == 200
-
-    def test_get_contains_form(self, tmpl_settings, logged_in_client, logged_in_user):
-        self._make_whoop_user(logged_in_user)
-        response = logged_in_client.get("/whoop/reauth")
-        assert b"username" in response.content.lower()
-
-    @patch("django_whoop.models.requests.post")
-    def test_post_updates_token_and_redirects(
-        self, mock_post, tmpl_settings, logged_in_client, logged_in_user
-    ):
-        wu = self._make_whoop_user(logged_in_user)
-        mock_resp = MagicMock()
-        mock_resp.status_code = 200
-        mock_resp.json.return_value = {
-            "access_token": "new_tok",
-            "expires_in": 3600,
-            "refresh_token": "new_ref",
-        }
-        mock_post.return_value = mock_resp
-
-        response = logged_in_client.post(
-            "/whoop/reauth",
-            {"username": "w@example.com", "password": "newpw"},
-        )
-        assert response.status_code == 302
-        assert response["Location"] == "/whoop/success"
-
-        wu.refresh_from_db()
-        assert wu.access_token == "new_tok"
-
-
-# ---------------------------------------------------------------------------
-# success view
-# ---------------------------------------------------------------------------
-
-
-@pytest.mark.django_db
-class TestSuccessView:
-    def test_get_returns_200(self, tmpl_settings, logged_in_client):
-        response = logged_in_client.get("/whoop/success")
-        assert response.status_code == 200
-
-    def test_content(self, tmpl_settings, logged_in_client):
-        response = logged_in_client.get("/whoop/success")
-        assert b"WHOOP successfully connected" in response.content
+    def test_get_not_allowed(self, client):
+        response = client.get(reverse("whoop:webhooks"))
+        assert response.status_code == 405

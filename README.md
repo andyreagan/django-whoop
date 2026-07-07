@@ -1,166 +1,141 @@
 # django-whoop
 
-django-whoop is a comprehensive Django app for integrating WHOOP data into your Django application. Track and visualize your recovery, sleep, strain, workouts, heart rate, and journal entries.
+[![CI](https://github.com/django-health/django-whoop/actions/workflows/ci.yml/badge.svg)](https://github.com/django-health/django-whoop/actions/workflows/ci.yml)
 
-## Features
+A reusable Django app for the official [WHOOP API](https://developer.whoop.com/) (v2). Handles the WHOOP OAuth 2.0 flow, fetches cycles, sleep, recovery, and workouts from `api.prod.whoop.com`, and persists them through [`django-healthdatamodel`](https://github.com/django-health/django-healthdatamodel) so the same storage and query layer serves Apple Health, Fitbit, Google Health, Garmin, Oura, and WHOOP side-by-side.
 
-- **Complete WHOOP Data Integration**: Sync recovery, sleep, strain, workouts, heart rate, and journal entries
-- **Dashboard**: View your WHOOP data with summary statistics and recent trends
-- **Data Views**: Detailed views for each data type (recovery, sleep, strain, workouts)
-- **Automatic Token Refresh**: Handles WHOOP API authentication automatically
-- **Management Commands**: Sync data via command line
-- **Django Admin**: Full admin interface for all WHOOP data models
-- **Historical Data Sync**: Pull all your historical WHOOP data or just recent days
+> **v0.2.0 is a ground-up rewrite.** Versions ≤ 0.1.3 used WHOOP's unofficial
+> password-grant API (`api-7.whoop.com`), which no longer works, and stored
+> data in their own tables. There is no migration path from the old models —
+> uninstall the old app, delete its tables, and start fresh.
 
-## Installation
+## Install
 
-1. Install the package:
-
-```bash
+```
 pip install django-whoop
 ```
 
-2. Add `django_whoop` to your `INSTALLED_APPS` setting:
+Add both this app and `django-healthdatamodel` to `INSTALLED_APPS`, then run migrations:
 
 ```python
 INSTALLED_APPS = [
-    ...,
-    'django_whoop',
+    ...
+    "healthdatamodel",
+    "whoop",
 ]
 ```
 
-3. Include the WHOOP URLconf in your project's `urls.py`:
-
-```python
-from django.urls import path, include
-
-urlpatterns = [
-    ...,
-    path('whoop/', include('django_whoop.urls')),
-]
 ```
-
-4. Run migrations to create the database models:
-
-```bash
 python manage.py migrate
 ```
 
-## Quick Start
+The model uses `settings.AUTH_USER_MODEL` so it works with any custom user model.
 
-### 1. Authenticate with WHOOP
+Include the URLs:
 
-Visit `/whoop/login` and enter your WHOOP credentials to link your account.
-
-### 2. Sync Your Data
-
-After authentication, you have several options:
-
-**Via Web Interface:**
-- Visit `/whoop/dashboard` to see your dashboard
-- Click "Sync Recent Data (7 days)" for quick updates
-- Click "Sync All Historical Data" for complete history
-
-**Via Management Command:**
-```bash
-# Sync recent data (last 7 days)
-python manage.py sync_whoop --username <your_django_username> --recent
-
-# Sync all historical data
-python manage.py sync_whoop --username <your_django_username> --historical
-
-# Sync specific number of days
-python manage.py sync_whoop --username <your_django_username> --days 30
+```python
+path("whoop/", include("whoop.urls")),
 ```
 
-### 3. View Your Data
+## Configuration
 
-Navigate to:
-- `/whoop/` or `/whoop/dashboard` - Main dashboard with summary stats
-- `/whoop/data/recovery` - Recovery scores and metrics
-- `/whoop/data/sleep` - Sleep scores and duration
-- `/whoop/data/strain` - Daily strain scores
-- `/whoop/data/workouts` - Workout details
+```python
+WHOOP_CLIENT_ID = "..."        # from the WHOOP developer dashboard
+WHOOP_CLIENT_SECRET = "..."
+WHOOP_REDIRECT_URI = "https://your-app.example.com/whoop/callback/"
 
-## URL Endpoints
-
-| URL | Description |
-|-----|-------------|
-| `/whoop/` | Dashboard (main view) |
-| `/whoop/login` | Authenticate with WHOOP |
-| `/whoop/reauth` | Re-authenticate (refresh credentials) |
-| `/whoop/sync/recent` | Sync last 7 days of data |
-| `/whoop/sync/historical` | Sync all historical data |
-| `/whoop/data/recovery` | View recovery data |
-| `/whoop/data/sleep` | View sleep data |
-| `/whoop/data/strain` | View strain data |
-| `/whoop/data/workouts` | View workout data |
-
-## Models
-
-The app includes the following Django models:
-
-- **WhoopUser**: Links Django user to WHOOP account with OAuth tokens
-- **Daily**: Daily cycle data
-- **Recovery**: Recovery scores and metrics (HRV, resting HR)
-- **Sleep**: Sleep scores and duration breakdown
-- **SleepDetail**: Detailed sleep session data
-- **Strain**: Daily strain scores and heart rate data
-- **Workout**: Individual workout sessions with zones
-- **HR**: Heart rate measurements (6-second intervals)
-- **JournalEntry**: Journal entries and behavior tracking
-
-## Management Commands
-
-### sync_whoop
-
-Sync WHOOP data from the command line:
-
-```bash
-# Sync recent data (last 7 days)
-python manage.py sync_whoop --username john --recent
-
-# Sync all historical data
-python manage.py sync_whoop --username john --historical
-
-# Sync specific number of days
-python manage.py sync_whoop --username john --days 30
+# Optional:
+WHOOP_DEFAULT_SCOPES = [...]         # default: all read scopes + offline
+WHOOP_CONNECT_SUCCESS_URL = "/"      # default: /admin/
 ```
 
-## Admin Interface
+Create the app at the [WHOOP developer dashboard](https://developer-dashboard.whoop.com/) (any WHOOP member can). See `docs/whoop/oauth.md` for the flow details — notably, the `offline` scope is what makes WHOOP issue a refresh token, and WHOOP rotates the refresh token on every refresh.
 
-All models are registered in Django admin with custom list displays and filters. Access at `/admin/` after logging in as a superuser.
+## Storage
 
-## API Version
+This app does **not** define `Record` / `Workout` tables — those live in `django-healthdatamodel`. The `whoop.ingest` module maps WHOOP API responses to `healthdatamodel.schemas.RecordInput` and `WorkoutInput`, then persists them via `healthdatamodel.ingest`. Read the data back with `healthdatamodel.query.*`.
 
-This package uses WHOOP API v7 (`api-7.whoop.com`).
+The only model defined here is `WhoopConnection`: per-user OAuth tokens, granted scopes, connection status, and last sync timestamp.
 
-## Requirements
+What maps where (details + caveats in the `whoop/ingest.py` docstring):
 
-- Django 3.2+
-- Python 3.8+
-- requests
-- pytz
-- python-dateutil
+| WHOOP | healthdatamodel |
+|---|---|
+| Cycle strain | `Record` type `WHOOPStrain` |
+| Cycle kilojoules (total energy) | `Record` ACTIVE_CALORIES (kcal) |
+| Sleep stage totals | `Record` sleep-analysis entries (synthetic sequential intervals) |
+| Sleep respiratory rate | `Record` HK respiratory rate |
+| Recovery score / RHR / HRV / SpO2 / skin temp | `Record` (`WHOOPRecoveryScore` + HK types) |
+| Workout (sport, energy, distance, HR zones) | `Workout` + metadata entries |
+| Body measurement (height, weight) | `Record` HK height / body mass |
 
-## Notes
+## Webhooks
 
-- WHOOP credentials are required for authentication
-- Access tokens are automatically refreshed when needed
-- Historical data sync may take several minutes depending on account age
-- Heart rate data is stored at 6-second intervals
+Point the webhook URL in the developer dashboard at `/whoop/webhooks/`. Every delivery is HMAC-verified against `WHOOP_CLIENT_SECRET`; authenticated events emit the `whoop.signals.event_received` signal. Wire a handler to `whoop.webhooks.process_event` (inline or via a queue) to fetch + ingest the changed resource:
 
-## Troubleshooting
+```python
+from django.dispatch import receiver
+from whoop.signals import event_received
+from whoop.webhooks import process_event
 
-**Authentication Issues:**
-- Ensure your WHOOP credentials are correct
-- Try re-authenticating at `/whoop/reauth`
+@receiver(event_received)
+def on_event(sender, payload, **kwargs):
+    process_event(payload)
+```
 
-**Data Not Syncing:**
-- Check that your access token is valid (visible in admin)
-- Try manual re-authentication
-- Check Django logs for API errors
+## Documentation
 
-## License
+The WHOOP API documentation is summarized as Markdown under `docs/whoop/` so it's grep-able offline: `oauth.md`, `api.md` (endpoints + payload shapes from the OpenAPI spec), `webhooks.md`.
 
-See LICENSE file for details.
+## Try it on your own data
+
+The repo includes a runnable demo Django project at `demo/` that takes you
+through the full OAuth flow and syncs your WHOOP data into `healthdatamodel`.
+
+### 1. Set up a WHOOP developer app (one-time)
+
+At <https://developer-dashboard.whoop.com/> create a team, then an app:
+
+- **Redirect URL:** `http://localhost:8000/whoop/callback/` (exact match,
+  trailing slash included).
+- **Scopes:** enable all the read scopes plus `offline`
+  (`read:recovery`, `read:cycles`, `read:sleep`, `read:workout`,
+  `read:profile`, `read:body_measurement`, `offline`).
+- Copy the Client ID and Client Secret.
+
+You'll authenticate as your own WHOOP account — no review process needed for
+personal use.
+
+### 2. Run the demo
+
+```
+uv sync
+uv run python manage.py migrate
+uv run python manage.py createsuperuser
+export WHOOP_CLIENT_ID=...
+export WHOOP_CLIENT_SECRET=...
+uv run python manage.py runserver
+```
+
+Open <http://localhost:8000/>, sign in with the superuser you just created,
+then:
+
+- Click **Connect WHOOP** → consent at WHOOP → land back on the homepage
+  with a `WhoopConnection` saved for your user.
+- Pick a window and click **Sync now** to fetch and persist records.
+- Browse the resulting rows at `/admin/healthdatamodel/record/`
+  (and `.../workout/`).
+
+If you'd rather drive sync from the terminal:
+
+```
+uv run python manage.py sync_whoop --user <your-username> --days 7
+```
+
+## Development
+
+```
+uv sync --group dev
+uv run pytest tests/ -v
+uv run pre-commit run --all-files
+```
