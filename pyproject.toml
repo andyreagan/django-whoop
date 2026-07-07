@@ -4,14 +4,13 @@ build-backend = "hatchling.build"
 
 [project]
 name = "django-whoop"
-version = "0.1.3"
-description = "A Django app to access WHOOP Web APIs."
-readme = { file = "README.md", content-type = "text/markdown" }
+version = "0.2.0"
+description = "A Django app for the WHOOP API (v2), backed by django-healthdatamodel."
+readme = "README.md"
 license = { text = "BSD-3-Clause" }
 authors = [
     { name = "Andy Reagan", email = "andy@andyreagan.com" },
 ]
-requires-python = ">=3.10"
 classifiers = [
     "Environment :: Web Environment",
     "Framework :: Django",
@@ -30,27 +29,32 @@ classifiers = [
     "Topic :: Internet :: WWW/HTTP",
     "Topic :: Internet :: WWW/HTTP :: Dynamic Content",
 ]
+requires-python = ">=3.10"
 dependencies = [
-    "Django>=4.0",
-    "requests",
-    "pytz",
+    "django",
+    "django-healthdatamodel>=0.8.0",
+    "httpx",
+    "pydantic>=2",
     "python-dateutil",
 ]
 
 [project.urls]
-Homepage = "https://django-whoop.andyreagan.github.io"
-Repository = "https://github.com/andyreagan/django-whoop"
-Issues = "https://github.com/andyreagan/django-whoop/issues"
+Homepage = "https://github.com/django-health/django-whoop"
+Repository = "https://github.com/django-health/django-whoop"
+Issues = "https://github.com/django-health/django-whoop/issues"
+
+[tool.hatch.build.targets.wheel]
+packages = ["whoop"]
 
 [dependency-groups]
 dev = [
     "pytest",
     "pytest-django",
-    "django",
+    "respx",
 ]
 
 [tool.pytest.ini_options]
 DJANGO_SETTINGS_MODULE = "tests.settings"
-
-[tool.hatch.build.targets.wheel]
-packages = ["django_whoop"]
+markers = [
+    "live: requires real WHOOP OAuth credentials in env (WHOOP_TEST_*)",
+]
