@@ -32,6 +32,8 @@ from . import oauth
 from .constants import API_BASE_URL, MAX_PAGE_SIZE
 
 if TYPE_CHECKING:
+    from typing import Self
+
     from .models import WhoopConnection
 
 
@@ -84,7 +86,7 @@ class WhoopClient:
 
     # context manager ------------------------------------------------------
 
-    def __enter__(self) -> WhoopClient:
+    def __enter__(self) -> Self:
         return self
 
     def __exit__(self, *exc: object) -> None:

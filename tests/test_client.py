@@ -103,9 +103,11 @@ class TestRetries:
     @respx.mock
     def test_gives_up_after_max_retries(self, connection):
         respx.get(CYCLE_URL).mock(return_value=Response(500, text="boom"))
-        with WhoopClient(connection, max_retries=2, sleep=lambda s: None) as client:
-            with pytest.raises(WhoopAPIError) as excinfo:
-                list(client.iter_cycles())
+        with (
+            WhoopClient(connection, max_retries=2, sleep=lambda s: None) as client,
+            pytest.raises(WhoopAPIError) as excinfo,
+        ):
+            list(client.iter_cycles())
         assert excinfo.value.status_code == 500
 
     @respx.mock

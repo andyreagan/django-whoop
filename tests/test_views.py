@@ -2,6 +2,7 @@ import base64
 import hashlib
 import hmac
 import json
+from typing import ClassVar
 from urllib.parse import parse_qs, urlparse
 
 import pytest
@@ -145,7 +146,7 @@ class TestDisconnect:
 
 @pytest.mark.django_db
 class TestWebhookReceiver:
-    EVENT = {
+    EVENT: ClassVar[dict] = {
         "user_id": 10129,
         "id": "ecfc6a15-4661-442f-a9a4-f160dd7afae8",
         "type": "sleep.updated",
