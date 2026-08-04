@@ -1,3 +1,4 @@
+import itertools
 from datetime import datetime, timedelta, timezone
 
 import pytest
@@ -158,7 +159,7 @@ class TestMapSleep:
 
         start = datetime(2022, 4, 24, 2, 25, 44, 774000, tzinfo=timezone.utc)
         assert stages[0].startDate == start
-        for prev, nxt in zip(stages, stages[1:]):
+        for prev, nxt in itertools.pairwise(stages):
             assert prev.endDate == nxt.startDate
 
         summary = SLEEP["score"]["stage_summary"]

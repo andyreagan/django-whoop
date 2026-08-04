@@ -58,3 +58,6 @@ DJANGO_SETTINGS_MODULE = "tests.settings"
 markers = [
     "live: requires real WHOOP OAuth credentials in env (WHOOP_TEST_*)",
 ]
+
+[tool.ruff.lint.per-file-ignores]
+"*/migrations/*" = ["RUF012"]
